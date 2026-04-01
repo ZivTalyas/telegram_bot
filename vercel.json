@@ -1,4 +1,9 @@
 {
+  "functions": {
+    "api/webhook.py": {
+      "runtime": "@vercel/python"
+    }
+  },
   "rewrites": [
     { "source": "/webhook", "destination": "/api/webhook" }
   ]
