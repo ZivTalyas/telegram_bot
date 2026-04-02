@@ -8,6 +8,7 @@ TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 
 def send_message(chat_id: int, text: str) -> None:
+    """Send a text message to a Telegram chat via the Bot API."""
     url = f"{TELEGRAM_API}/sendMessage"
     data = json.dumps({"chat_id": chat_id, "text": text}).encode()
     req = urllib.request.Request(
@@ -17,6 +18,7 @@ def send_message(chat_id: int, text: str) -> None:
 
 
 def handle_update(update: dict) -> None:
+    """Parse a Telegram update object and dispatch the appropriate command reply."""
     message = update.get("message") or update.get("edited_message")
     if not message:
         return
@@ -32,13 +34,17 @@ def handle_update(update: dict) -> None:
             "Available commands:\n/start — greet\n/help — show this message\n/echo <text> — repeat your text",
         )
     elif text.startswith("/echo "):
+        # Strip the "/echo " prefix (6 chars) and echo the rest
         send_message(chat_id, text[6:])
     else:
         send_message(chat_id, f"You said: {text}")
 
 
 class handler(BaseHTTPRequestHandler):
+    """Vercel serverless entry point. Class must be named 'handler'."""
+
     def do_POST(self):
+        """Receive a Telegram webhook update, process it, and always return 200."""
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
         try:
@@ -52,9 +58,11 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(b"ok")
 
     def do_GET(self):
+        """Health-check endpoint — confirms the function is deployed and reachable."""
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"Bot is running.")
 
     def log_message(self, format, *args):
-        pass  # suppress default access logs
+        """Suppress the default per-request access log from BaseHTTPRequestHandler."""
+        pass
