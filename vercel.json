@@ -1,6 +1,7 @@
 {
   "framework": null,
   "rewrites": [
-    { "source": "/webhook", "destination": "/api/webhook" }
+    { "source": "/webhook", "destination": "/api/webhook" },
+    { "source": "/cron",    "destination": "/api/cron" }
   ]
 }
