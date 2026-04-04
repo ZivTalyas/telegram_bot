@@ -11,7 +11,9 @@ TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 with open(os.path.join(_HERE, "sp500.json")) as _f:
-    SP500_SYMBOLS: list = json.load(_f)
+    _SP500_DATA: dict = json.load(_f)
+
+SP500_SYMBOLS: list = list(_SP500_DATA.keys())
 
 ALERT_THRESHOLD = -5.0  # percent
 
@@ -30,9 +32,11 @@ def fetch_batch_quotes(symbols: list) -> list:
                 if price is None or prev_close is None or prev_close == 0:
                     continue
                 change_pct = (price / prev_close - 1) * 100
+                meta = _SP500_DATA.get(symbol, {})
                 results.append({
                     "symbol": symbol,
-                    "shortName": symbol,
+                    "name": meta.get("name", symbol),
+                    "sector": meta.get("sector", ""),
                     "regularMarketPrice": price,
                     "regularMarketChangePercent": change_pct,
                 })
@@ -44,12 +48,14 @@ def fetch_batch_quotes(symbols: list) -> list:
 def format_alert(quote: dict) -> str:
     """Format a single stock alert line."""
     symbol = quote.get("symbol", "?")
-    name = quote.get("shortName", symbol)
+    name = quote.get("name", symbol)
+    sector = quote.get("sector", "")
     price = quote.get("regularMarketPrice", 0)
     change_pct = quote.get("regularMarketChangePercent", 0)
+    sector_line = f"\n🏢 Sector: `{sector}`" if sector else ""
     return (
         f"📉 *{name} ({symbol})* dropped `{change_pct:.2f}%`\n"
-        f"💵 Price: `${price:.2f}`"
+        f"💵 Price: `${price:.2f}`{sector_line}"
     )
 
 
