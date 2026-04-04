@@ -1,6 +1,7 @@
 import http.cookiejar
 import json
 import os
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler
 
@@ -14,18 +15,15 @@ with open(os.path.join(_HERE, "sp500.json")) as _f:
 
 ALERT_THRESHOLD = -5.0  # percent
 
-
-_YF_HEADERS = {
+_BROWSER_HEADERS = {
     "User-Agent": (
         "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
         "AppleWebKit/537.36 (KHTML, like Gecko) "
         "Chrome/124.0.0.0 Safari/537.36"
     ),
-    "Accept": "application/json",
     "Accept-Language": "en-US,en;q=0.9",
 }
 
-# Cookie jar shared across all requests in the same function invocation
 _cookie_jar = http.cookiejar.CookieJar()
 _opener = urllib.request.build_opener(
     urllib.request.HTTPCookieProcessor(_cookie_jar)
@@ -33,17 +31,22 @@ _opener = urllib.request.build_opener(
 
 
 def _get_crumb() -> str:
-    """Visit Yahoo Finance to collect a session cookie, then fetch the crumb token."""
+    """Obtain a Yahoo Finance session cookie and crumb token."""
+    # fc.yahoo.com is Yahoo's cookie/auth domain — more reliable than finance.yahoo.com
+    # from data-center IPs (avoids the GDPR consent wall)
     _opener.open(
-        urllib.request.Request("https://finance.yahoo.com/", headers=_YF_HEADERS),
+        urllib.request.Request(
+            "https://fc.yahoo.com",
+            headers={**_BROWSER_HEADERS, "Accept": "text/html,application/xhtml+xml,*/*"},
+        ),
         timeout=10,
     )
     req = urllib.request.Request(
         "https://query2.finance.yahoo.com/v1/test/getcrumb",
-        headers=_YF_HEADERS,
+        headers={**_BROWSER_HEADERS, "Accept": "*/*"},
     )
     with _opener.open(req, timeout=10) as resp:
-        return resp.read().decode()
+        return resp.read().decode().strip()
 
 
 def fetch_batch_quotes(symbols: list) -> list:
@@ -54,10 +57,13 @@ def fetch_batch_quotes(symbols: list) -> list:
         batch = ",".join(symbols[i:i + 100])
         url = (
             "https://query2.finance.yahoo.com/v8/finance/quote"
-            f"?symbols={batch}&crumb={crumb}"
+            f"?symbols={batch}&crumb={urllib.parse.quote(crumb)}"
             "&fields=symbol,shortName,regularMarketPrice,regularMarketChangePercent"
         )
-        req = urllib.request.Request(url, headers=_YF_HEADERS)
+        req = urllib.request.Request(
+            url,
+            headers={**_BROWSER_HEADERS, "Accept": "application/json"},
+        )
         with _opener.open(req, timeout=10) as resp:
             data = json.loads(resp.read())
         results.extend(data.get("quoteResponse", {}).get("result", []))
