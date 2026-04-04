@@ -1,9 +1,9 @@
-import http.cookiejar
 import json
 import os
-import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler
+
+import yfinance as yf
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")
@@ -15,58 +15,29 @@ with open(os.path.join(_HERE, "sp500.json")) as _f:
 
 ALERT_THRESHOLD = -5.0  # percent
 
-_BROWSER_HEADERS = {
-    "User-Agent": (
-        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-        "AppleWebKit/537.36 (KHTML, like Gecko) "
-        "Chrome/124.0.0.0 Safari/537.36"
-    ),
-    "Accept-Language": "en-US,en;q=0.9",
-}
-
-_cookie_jar = http.cookiejar.CookieJar()
-_opener = urllib.request.build_opener(
-    urllib.request.HTTPCookieProcessor(_cookie_jar)
-)
-
-
-def _get_crumb() -> str:
-    """Obtain a Yahoo Finance session cookie and crumb token."""
-    # fc.yahoo.com is Yahoo's cookie/auth domain — more reliable than finance.yahoo.com
-    # from data-center IPs (avoids the GDPR consent wall)
-    _opener.open(
-        urllib.request.Request(
-            "https://fc.yahoo.com",
-            headers={**_BROWSER_HEADERS, "Accept": "text/html,application/xhtml+xml,*/*"},
-        ),
-        timeout=10,
-    )
-    req = urllib.request.Request(
-        "https://query2.finance.yahoo.com/v1/test/getcrumb",
-        headers={**_BROWSER_HEADERS, "Accept": "*/*"},
-    )
-    with _opener.open(req, timeout=10) as resp:
-        return resp.read().decode().strip()
-
 
 def fetch_batch_quotes(symbols: list) -> list:
-    """Fetch quotes from Yahoo Finance in batches of 100."""
-    crumb = _get_crumb()
+    """Fetch quotes for all symbols using yfinance in batches of 100."""
     results = []
     for i in range(0, len(symbols), 100):
-        batch = ",".join(symbols[i:i + 100])
-        url = (
-            "https://query2.finance.yahoo.com/v8/finance/quote"
-            f"?symbols={batch}&crumb={urllib.parse.quote(crumb)}"
-            "&fields=symbol,shortName,regularMarketPrice,regularMarketChangePercent"
-        )
-        req = urllib.request.Request(
-            url,
-            headers={**_BROWSER_HEADERS, "Accept": "application/json"},
-        )
-        with _opener.open(req, timeout=10) as resp:
-            data = json.loads(resp.read())
-        results.extend(data.get("quoteResponse", {}).get("result", []))
+        batch = symbols[i:i + 100]
+        tickers = yf.Tickers(" ".join(batch))
+        for symbol in batch:
+            try:
+                info = tickers.tickers[symbol].fast_info
+                price = info.last_price
+                prev_close = info.previous_close
+                if price is None or prev_close is None or prev_close == 0:
+                    continue
+                change_pct = (price / prev_close - 1) * 100
+                results.append({
+                    "symbol": symbol,
+                    "shortName": symbol,
+                    "regularMarketPrice": price,
+                    "regularMarketChangePercent": change_pct,
+                })
+            except Exception:
+                continue
     return results
 
 
