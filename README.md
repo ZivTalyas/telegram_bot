@@ -6,15 +6,16 @@ A zero-dependency Telegram bot deployed as a Python serverless function on Verce
 
 ## How it works
 
-### Finance reporter (hourly cron)
+### S&P 500 drop alert (hourly cron)
 
 ```
 cron-job.org (every hour)
         ↓  GET /cron
    api/cron.py
-        ↓  fetch GLOBAL_QUOTE for GOOG from Alpha Vantage
-        ↓  format message
-        ↓  send_message → Telegram channel (read-only for users)
+        ↓  load sp500.json (503 tickers)
+        ↓  one batch request → Yahoo Finance
+        ↓  filter: change% <= -5%
+        ↓  send_message → Telegram channel (if any alerts)
 ```
 
 ### Echo bot (on-demand)
@@ -34,8 +35,9 @@ Telegram  →  POST /webhook  →  api/webhook.py
 ```
 .
 ├── api/
-│   ├── cron.py          # Hourly job: fetch GOOG quote → publish to Telegram
+│   ├── cron.py          # Hourly job: check S&P 500 for ≥5% drops → alert
 │   └── webhook.py       # Echo bot: handles incoming Telegram messages
+├── sp500.json           # All 503 S&P 500 tickers (edit to add/remove)
 ├── setup_webhook.py     # One-time script to register the webhook with Telegram
 ├── vercel.json          # URL rewrites, no framework
 ├── pyproject.toml       # Python project metadata (required by Vercel uv build)
@@ -53,7 +55,7 @@ Talk to [@BotFather](https://t.me/BotFather) and run `/newbot`. Copy the token.
 
 ### 2. Create a Telegram channel
 
-1. Create a new channel in Telegram (e.g. "GOOG Finance Feed")
+1. Create a new channel in Telegram (e.g. "S&P 500 Alerts")
 2. Add your bot as **Admin** with the "Post Messages" permission
 3. Get the channel's `CHAT_ID`:
 
@@ -63,43 +65,39 @@ curl "https://api.telegram.org/bot<YOUR_TOKEN>/getUpdates"
 # Look for "chat": {"id": -100xxxxxxxxxx} — that negative number is the CHAT_ID
 ```
 
-### 3. Get an Alpha Vantage API key
-
-Sign up at [alphavantage.co](https://www.alphavantage.co/support/#api-key). Free tier: 25 req/day.  
-At 1 request/hour = 24/day — fits within the free tier.
-
-### 4. Configure environment variables
+### 3. Configure environment variables
 
 ```bash
 cp .env.example .env
-# Fill in all three values
+# Fill in TELEGRAM_TOKEN and CHAT_ID
 ```
 
 In Vercel:
 
 ```bash
 vercel env add TELEGRAM_TOKEN
-vercel env add ALPHA_VANTAGE_KEY
 vercel env add CHAT_ID
 ```
 
-### 5. Deploy to Vercel
+> No Alpha Vantage key needed — the cron now uses Yahoo Finance (free, no key).
+
+### 4. Deploy to Vercel
 
 ```bash
 npm i -g vercel   # install CLI if needed
 vercel            # deploy
 ```
 
-### 6. Set up cron-job.org
+### 5. Set up cron-job.org
 
 1. Sign up at [cron-job.org](https://cron-job.org)
 2. Create a new cron job:
    - **URL:** `https://your-app.vercel.app/cron`
    - **Schedule:** every hour (`:00` of each hour)
    - **Method:** GET
-3. Save — it will now trigger the hourly stock report automatically
+3. Save — it will now check for stock drops every hour automatically
 
-### 7. Register the echo bot webhook (optional)
+### 6. Register the echo bot webhook (optional)
 
 Only needed if you also want the echo bot (`/start`, `/help`, `/echo`):
 
@@ -114,29 +112,40 @@ python setup_webhook.py
 | Variable | Description |
 |----------|-------------|
 | `TELEGRAM_TOKEN` | Bot token from BotFather |
-| `ALPHA_VANTAGE_KEY` | API key from alphavantage.co |
 | `CHAT_ID` | Telegram channel ID (negative number, e.g. `-1001234567890`) |
 
 ---
 
-## Hourly message format
+## Alert message format
+
+Sent only when at least one stock drops ≥ 5% on the day:
 
 ```
-📈 GOOG — Hourly Update
-💵 Price: $174.39
-🔄 Change: -1.60 (-0.9092%)
-📊 High: $177.00 | Low: $173.56
-📦 Volume: 21,389,847
-📅 2024-01-15
+🚨 S&P 500 Alert — 2 stock(s) down ≥5% today
+
+📉 NVIDIA Corporation (NVDA) dropped -6.43%
+💵 Price: $112.50
+
+📉 Tesla Inc (TSLA) dropped -5.12%
+💵 Price: $241.30
 ```
+
+Results are sorted worst-first. No message is sent on normal days.
+
+---
+
+## Customisation
+
+- **Change the threshold:** edit `ALERT_THRESHOLD = -5.0` in `api/cron.py`
+- **Add/remove tickers:** edit `sp500.json` — it's a plain JSON array of symbols
 
 ---
 
 ## Rate limits
 
-| Resource | Free limit | Usage at 1/hour |
-|----------|-----------|-----------------|
-| Alpha Vantage | 25 req/day | 24 req/day ✅ |
+| Resource | Free limit | Usage |
+|----------|-----------|-------|
+| Yahoo Finance | no key / no hard limit | 1 batch req/hour ✅ |
 | Vercel functions | generous free tier | 24 invocations/day ✅ |
 | cron-job.org | free | unlimited ✅ |
 
@@ -148,7 +157,7 @@ python setup_webhook.py
 vercel dev
 ```
 
-Then use cron-job.org or `curl` to test the cron endpoint manually:
+Then trigger the cron manually:
 
 ```bash
 curl http://localhost:3000/cron
