@@ -19,29 +19,45 @@ ALERT_THRESHOLD = -5.0  # percent
 
 
 def fetch_batch_quotes(symbols: list) -> list:
-    """Fetch quotes for all symbols using yfinance in batches of 100."""
+    """Fetch quotes for all symbols in a single yfinance download call."""
+    data = yf.download(
+        " ".join(symbols),
+        period="2d",
+        progress=False,
+        threads=True,
+        auto_adjust=True,
+    )
+    if data.empty:
+        return []
+
+    close = data["Close"]
+    # When only one symbol is returned yfinance gives a Series, not a DataFrame
+    if hasattr(close, "values") and close.ndim == 1:
+        close = close.to_frame(name=symbols[0])
+
     results = []
-    for i in range(0, len(symbols), 100):
-        batch = symbols[i:i + 100]
-        tickers = yf.Tickers(" ".join(batch))
-        for symbol in batch:
-            try:
-                info = tickers.tickers[symbol].fast_info
-                price = info.last_price
-                prev_close = info.previous_close
-                if price is None or prev_close is None or prev_close == 0:
-                    continue
-                change_pct = (price / prev_close - 1) * 100
-                meta = _SP500_DATA.get(symbol, {})
-                results.append({
-                    "symbol": symbol,
-                    "name": meta.get("name", symbol),
-                    "sector": meta.get("sector", ""),
-                    "regularMarketPrice": price,
-                    "regularMarketChangePercent": change_pct,
-                })
-            except Exception:
+    for symbol in symbols:
+        try:
+            if symbol not in close.columns:
                 continue
+            prices = close[symbol].dropna()
+            if len(prices) < 2:
+                continue
+            price = float(prices.iloc[-1])
+            prev_close = float(prices.iloc[-2])
+            if prev_close == 0:
+                continue
+            change_pct = (price / prev_close - 1) * 100
+            meta = _SP500_DATA.get(symbol, {})
+            results.append({
+                "symbol": symbol,
+                "name": meta.get("name", symbol),
+                "sector": meta.get("sector", ""),
+                "regularMarketPrice": price,
+                "regularMarketChangePercent": change_pct,
+            })
+        except Exception:
+            continue
     return results
 
 
@@ -77,6 +93,11 @@ class handler(BaseHTTPRequestHandler):
     """Vercel serverless cron — checks S&P 500 stocks for drops ≥5% today."""
 
     def do_GET(self):
+        # Respond immediately so the cron trigger does not time out
+        self.send_response(200)
+        self.end_headers()
+        self.wfile.flush()
+
         try:
             quotes = fetch_batch_quotes(SP500_SYMBOLS)
             alerts = sorted(
@@ -89,15 +110,11 @@ class handler(BaseHTTPRequestHandler):
                 body = "\n\n".join(format_alert(q) for q in alerts)
                 send_message(CHAT_ID, header + body)
 
-            self.send_response(200)
-            self.end_headers()
             self.wfile.write(
                 f"checked {len(quotes)} stocks, {len(alerts)} alerts sent".encode()
             )
         except Exception as e:
             print(f"Cron error: {e}")
-            self.send_response(500)
-            self.end_headers()
             self.wfile.write(str(e).encode())
 
     def log_message(self, format, *args):
