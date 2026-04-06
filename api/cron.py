@@ -1,9 +1,9 @@
 import json
 import os
+import urllib.parse
 import urllib.request
+from http.cookiejar import CookieJar
 from http.server import BaseHTTPRequestHandler
-
-import yfinance as yf
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")
@@ -17,47 +17,46 @@ SP500_SYMBOLS: list = list(_SP500_DATA.keys())
 
 ALERT_THRESHOLD = -5.0  # percent
 
+_HEADERS = {"User-Agent": "Mozilla/5.0"}
+
+
+def _yahoo_opener():
+    """Build an opener with Yahoo Finance session cookies and return (opener, crumb)."""
+    jar = CookieJar()
+    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
+    opener.addheaders = list(_HEADERS.items())
+    opener.open("https://finance.yahoo.com/").close()
+    crumb = opener.open(
+        "https://query1.finance.yahoo.com/v1/test/getcrumb"
+    ).read().decode()
+    return opener, crumb
+
 
 def fetch_batch_quotes(symbols: list) -> list:
-    """Fetch quotes for all symbols in a single yfinance download call."""
-    data = yf.download(
-        " ".join(symbols),
-        period="2d",
-        progress=False,
-        threads=True,
-        auto_adjust=True,
-    )
-    if data.empty:
-        return []
-
-    close = data["Close"]
-    # When only one symbol is returned yfinance gives a Series, not a DataFrame
-    if hasattr(close, "values") and close.ndim == 1:
-        close = close.to_frame(name=symbols[0])
-
+    """Fetch all quotes via Yahoo Finance bulk API — ~3 requests for 500 symbols."""
+    opener, crumb = _yahoo_opener()
     results = []
-    for symbol in symbols:
-        try:
-            if symbol not in close.columns:
+    for i in range(0, len(symbols), 200):
+        batch = ",".join(symbols[i:i + 200])
+        url = (
+            "https://query1.finance.yahoo.com/v7/finance/quote"
+            f"?crumb={urllib.parse.quote(crumb)}&symbols={batch}"
+        )
+        data = json.loads(opener.open(url).read())
+        for q in data.get("quoteResponse", {}).get("result", []):
+            sym = q.get("symbol")
+            price = q.get("regularMarketPrice")
+            change_pct = q.get("regularMarketChangePercent")
+            if sym is None or price is None or change_pct is None:
                 continue
-            prices = close[symbol].dropna()
-            if len(prices) < 2:
-                continue
-            price = float(prices.iloc[-1])
-            prev_close = float(prices.iloc[-2])
-            if prev_close == 0:
-                continue
-            change_pct = (price / prev_close - 1) * 100
-            meta = _SP500_DATA.get(symbol, {})
+            meta = _SP500_DATA.get(sym, {})
             results.append({
-                "symbol": symbol,
-                "name": meta.get("name", symbol),
+                "symbol": sym,
+                "name": meta.get("name", sym),
                 "sector": meta.get("sector", ""),
                 "regularMarketPrice": price,
                 "regularMarketChangePercent": change_pct,
             })
-        except Exception:
-            continue
     return results
 
 
