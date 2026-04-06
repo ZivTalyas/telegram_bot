@@ -18,30 +18,64 @@ SP500_SYMBOLS: list = list(_SP500_DATA.keys())
 
 ALERT_THRESHOLD = -5.0  # percent
 
-
-def _fetch_one(symbol: str):
-    try:
-        info = yf.Ticker(symbol).fast_info
-        price = info.last_price
-        prev = info.previous_close
-        if not price or not prev or prev == 0:
-            return None
-        meta = _SP500_DATA.get(symbol, {})
-        return {
-            "symbol": symbol,
-            "name": meta.get("name", symbol),
-            "sector": meta.get("sector", ""),
-            "regularMarketPrice": float(price),
-            "regularMarketChangePercent": float((price / prev - 1) * 100),
-        }
-    except Exception:
-        return None
+_BATCH_SIZE = 100  # yfinance handles ~100 tickers per bulk request well
 
 
 def fetch_batch_quotes(symbols: list) -> list:
-    """Fetch all quotes in parallel — 50 concurrent yfinance requests."""
-    with ThreadPoolExecutor(max_workers=50) as executor:
-        return [r for r in executor.map(_fetch_one, symbols) if r is not None]
+    """
+    Fetch all quotes using bulk yf.download() calls — one HTTP request per
+    batch of 100 tickers instead of 500 individual requests.
+    """
+    batches = [symbols[i:i + _BATCH_SIZE] for i in range(0, len(symbols), _BATCH_SIZE)]
+
+    def _fetch_batch(batch: list) -> list:
+        try:
+            # period="1d" + auto_adjust=False gives us Open ≈ prev_close context;
+            # "2d" ensures we always have yesterday's close even mid-session.
+            df = yf.download(
+                batch,
+                period="2d",
+                interval="1d",
+                auto_adjust=False,
+                progress=False,
+                threads=True,   # yfinance internal parallelism per batch
+            )
+            if df.empty:
+                return []
+
+            close = df["Close"]
+            results = []
+            for symbol in batch:
+                try:
+                    col = symbol if symbol in close.columns else None
+                    if col is None:
+                        continue
+                    prices = close[col].dropna()
+                    if len(prices) < 2:
+                        continue
+                    prev = float(prices.iloc[-2])
+                    price = float(prices.iloc[-1])
+                    if not price or not prev or prev == 0:
+                        continue
+                    meta = _SP500_DATA.get(symbol, {})
+                    results.append({
+                        "symbol": symbol,
+                        "name": meta.get("name", symbol),
+                        "sector": meta.get("sector", ""),
+                        "regularMarketPrice": price,
+                        "regularMarketChangePercent": (price / prev - 1) * 100,
+                    })
+                except Exception:
+                    continue
+            return results
+        except Exception:
+            return []
+
+    # Run the ~5 batches in parallel
+    with ThreadPoolExecutor(max_workers=len(batches)) as executor:
+        batch_results = executor.map(_fetch_batch, batches)
+
+    return [quote for batch in batch_results for quote in batch]
 
 
 def format_alert(quote: dict) -> str:
@@ -76,7 +110,6 @@ class handler(BaseHTTPRequestHandler):
     """Vercel serverless cron — checks S&P 500 stocks for drops ≥5% today."""
 
     def do_GET(self):
-        # Respond immediately so the cron trigger does not time out
         self.send_response(200)
         self.end_headers()
         self.wfile.flush()
@@ -101,5 +134,4 @@ class handler(BaseHTTPRequestHandler):
             self.wfile.write(str(e).encode())
 
     def log_message(self, format, *args):
-        """Suppress default per-request access logs."""
         pass
