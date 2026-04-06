@@ -4,6 +4,7 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler
 
+import pandas as pd
 import yfinance as yf
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
@@ -17,40 +18,37 @@ with open(os.path.join(_HERE, "sp500.json")) as _f:
 SP500_SYMBOLS: list = list(_SP500_DATA.keys())
 
 ALERT_THRESHOLD = -5.0  # percent
-
-_BATCH_SIZE = 100  # yfinance handles ~100 tickers per bulk request well
+_BATCH_SIZE = 100
 
 
 def fetch_batch_quotes(symbols: list) -> list:
-    """
-    Fetch all quotes using bulk yf.download() calls — one HTTP request per
-    batch of 100 tickers instead of 500 individual requests.
-    """
     batches = [symbols[i:i + _BATCH_SIZE] for i in range(0, len(symbols), _BATCH_SIZE)]
 
     def _fetch_batch(batch: list) -> list:
         try:
-            # period="1d" + auto_adjust=False gives us Open ≈ prev_close context;
-            # "2d" ensures we always have yesterday's close even mid-session.
             df = yf.download(
                 batch,
-                period="2d",
+                period="5d",
                 interval="1d",
                 auto_adjust=False,
                 progress=False,
-                threads=True,   # yfinance internal parallelism per batch
+                threads=True,
+                group_by="ticker",
             )
             if df.empty:
                 return []
 
-            close = df["Close"]
             results = []
             for symbol in batch:
                 try:
-                    col = symbol if symbol in close.columns else None
-                    if col is None:
-                        continue
-                    prices = close[col].dropna()
+                    # Handle single-ticker flat columns edge case
+                    if isinstance(df.columns, pd.MultiIndex):
+                        if symbol not in df.columns.get_level_values(0):
+                            continue
+                        prices = df[symbol]["Close"].dropna()
+                    else:
+                        prices = df["Close"].dropna()
+
                     if len(prices) < 2:
                         continue
                     prev = float(prices.iloc[-2])
@@ -71,7 +69,6 @@ def fetch_batch_quotes(symbols: list) -> list:
         except Exception:
             return []
 
-    # Run the ~5 batches in parallel
     with ThreadPoolExecutor(max_workers=len(batches)) as executor:
         batch_results = executor.map(_fetch_batch, batches)
 
@@ -79,7 +76,6 @@ def fetch_batch_quotes(symbols: list) -> list:
 
 
 def format_alert(quote: dict) -> str:
-    """Format a single stock alert line."""
     symbol = quote.get("symbol", "?")
     name = quote.get("name", symbol)
     sector = quote.get("sector", "")
@@ -93,7 +89,6 @@ def format_alert(quote: dict) -> str:
 
 
 def send_message(chat_id: str, text: str) -> None:
-    """Send a Markdown-formatted message to a Telegram chat or channel."""
     url = f"{TELEGRAM_API}/sendMessage"
     payload = json.dumps({
         "chat_id": chat_id,
