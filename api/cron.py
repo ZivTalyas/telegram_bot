@@ -1,9 +1,10 @@
 import json
 import os
-import urllib.parse
 import urllib.request
-from http.cookiejar import CookieJar
+from concurrent.futures import ThreadPoolExecutor
 from http.server import BaseHTTPRequestHandler
+
+import yfinance as yf
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 CHAT_ID = os.environ.get("CHAT_ID", "")
@@ -17,47 +18,30 @@ SP500_SYMBOLS: list = list(_SP500_DATA.keys())
 
 ALERT_THRESHOLD = -5.0  # percent
 
-_HEADERS = {"User-Agent": "Mozilla/5.0"}
 
-
-def _yahoo_opener():
-    """Build an opener with Yahoo Finance session cookies and return (opener, crumb)."""
-    jar = CookieJar()
-    opener = urllib.request.build_opener(urllib.request.HTTPCookieProcessor(jar))
-    opener.addheaders = list(_HEADERS.items())
-    opener.open("https://finance.yahoo.com/").close()
-    crumb = opener.open(
-        "https://query1.finance.yahoo.com/v1/test/getcrumb"
-    ).read().decode()
-    return opener, crumb
+def _fetch_one(symbol: str):
+    try:
+        info = yf.Ticker(symbol).fast_info
+        price = info.last_price
+        prev = info.previous_close
+        if not price or not prev or prev == 0:
+            return None
+        meta = _SP500_DATA.get(symbol, {})
+        return {
+            "symbol": symbol,
+            "name": meta.get("name", symbol),
+            "sector": meta.get("sector", ""),
+            "regularMarketPrice": float(price),
+            "regularMarketChangePercent": float((price / prev - 1) * 100),
+        }
+    except Exception:
+        return None
 
 
 def fetch_batch_quotes(symbols: list) -> list:
-    """Fetch all quotes via Yahoo Finance bulk API — ~3 requests for 500 symbols."""
-    opener, crumb = _yahoo_opener()
-    results = []
-    for i in range(0, len(symbols), 200):
-        batch = ",".join(symbols[i:i + 200])
-        url = (
-            "https://query1.finance.yahoo.com/v7/finance/quote"
-            f"?crumb={urllib.parse.quote(crumb)}&symbols={batch}"
-        )
-        data = json.loads(opener.open(url).read())
-        for q in data.get("quoteResponse", {}).get("result", []):
-            sym = q.get("symbol")
-            price = q.get("regularMarketPrice")
-            change_pct = q.get("regularMarketChangePercent")
-            if sym is None or price is None or change_pct is None:
-                continue
-            meta = _SP500_DATA.get(sym, {})
-            results.append({
-                "symbol": sym,
-                "name": meta.get("name", sym),
-                "sector": meta.get("sector", ""),
-                "regularMarketPrice": price,
-                "regularMarketChangePercent": change_pct,
-            })
-    return results
+    """Fetch all quotes in parallel — 50 concurrent yfinance requests."""
+    with ThreadPoolExecutor(max_workers=50) as executor:
+        return [r for r in executor.map(_fetch_one, symbols) if r is not None]
 
 
 def format_alert(quote: dict) -> str:
