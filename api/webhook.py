@@ -20,14 +20,25 @@ ROUTES = {
 
 def send_message(chat_id: int, text: str, parse_mode: str = "") -> None:
     url = f"{TELEGRAM_API}/sendMessage"
+
+    def _post(payload: dict) -> None:
+        data = json.dumps(payload).encode()
+        req = urllib.request.Request(
+            url, data=data, headers={"Content-Type": "application/json"}
+        )
+        urllib.request.urlopen(req)
+
     payload: dict = {"chat_id": chat_id, "text": text}
     if parse_mode:
         payload["parse_mode"] = parse_mode
-    data = json.dumps(payload).encode()
-    req = urllib.request.Request(
-        url, data=data, headers={"Content-Type": "application/json"}
-    )
-    urllib.request.urlopen(req)
+    try:
+        _post(payload)
+    except urllib.error.HTTPError as e:
+        if e.code == 400 and parse_mode:
+            # Markdown parse error — retry as plain text
+            _post({"chat_id": chat_id, "text": text})
+        else:
+            raise
 
 
 def run_reduce_5_percent(chat_id: int) -> None:
@@ -151,14 +162,17 @@ def _run_stock_rate(chat_id: int) -> None:
                 lines.append(f"  ⚠️ {f}")
             lines.append("")
 
-        # Telegram limit is 4096 chars — split if needed
-        msg, chunk = "", "\n".join(lines)
+        # Telegram limit is 4096 chars — split on company boundaries, never inside a ``` block
+        chunk = "\n".join(lines)
         if len(chunk) <= 4096:
             send_message(chat_id, chunk, parse_mode="Markdown")
         else:
             current = ""
+            in_code = False
             for line in lines:
-                if len(current) + len(line) + 1 > 4090:
+                if line.strip() == "```":
+                    in_code = not in_code
+                if not in_code and len(current) + len(line) + 1 > 4090:
                     send_message(chat_id, current.strip(), parse_mode="Markdown")
                     current = ""
                 current += line + "\n"
