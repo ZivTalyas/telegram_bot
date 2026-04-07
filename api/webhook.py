@@ -8,6 +8,7 @@ from http.server import BaseHTTPRequestHandler
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
+CHAT_ID = os.environ.get("CHAT_ID", "")
 
 _scan_lock = threading.Lock()
 
@@ -123,7 +124,7 @@ def _run_stock_rate(chat_id: int) -> None:
 
         lines = [
             f"📅 {today}",
-            f"✅ {len(results)}/{total} stocks passed threshold — *Top 10 across all sectors:*",
+            f"✅ *Top 10 across all sectors:*",
             "",
         ]
 
@@ -150,7 +151,7 @@ def _run_stock_rate(chat_id: int) -> None:
             if raw.get("analyst_rev") is not None:
                 data_lines.append(f"Analyst Rev.   : {str(raw['analyst_rev']).capitalize()}")
 
-            lines.append(f"*{i}. {s['name']} ({s['ticker']})*")
+            lines.append(f"*{i}. {s['name']}* ({s['ticker']})")
             lines.append(f"Sector: {s['sector']} — Score: *{s['total_score']:.1f}/10*")
             if data_lines:
                 lines.append("```")
@@ -162,10 +163,13 @@ def _run_stock_rate(chat_id: int) -> None:
                 lines.append(f"  ⚠️ {f}")
             lines.append("")
 
+        # Send final report to the channel (same as reduce_5_percent)
+        dest = CHAT_ID or chat_id
+
         # Telegram limit is 4096 chars — split on company boundaries, never inside a ``` block
         chunk = "\n".join(lines)
         if len(chunk) <= 4096:
-            send_message(chat_id, chunk, parse_mode="Markdown")
+            send_message(dest, chunk, parse_mode="Markdown")
         else:
             current = ""
             in_code = False
@@ -173,11 +177,11 @@ def _run_stock_rate(chat_id: int) -> None:
                 if line.strip() == "```":
                     in_code = not in_code
                 if not in_code and len(current) + len(line) + 1 > 4090:
-                    send_message(chat_id, current.strip(), parse_mode="Markdown")
+                    send_message(dest, current.strip(), parse_mode="Markdown")
                     current = ""
                 current += line + "\n"
             if current.strip():
-                send_message(chat_id, current.strip(), parse_mode="Markdown")
+                send_message(dest, current.strip(), parse_mode="Markdown")
 
     except ImportError as e:
         send_message(chat_id, f"❌ Missing dependency: {e}\n\nMake sure yfinance and pandas are installed.")
