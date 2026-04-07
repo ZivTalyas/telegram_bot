@@ -9,7 +9,8 @@ TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 # Routes that can be triggered via bot commands
 ROUTES = {
-    "/cron": "Check S&P 500 for stocks down ≥5% today and send alerts",
+    "/reduce_5_percent": "Check top-100 S&P 500 stocks down ≥5% today and send alerts",
+    "/stock_rate":       "Run fundamental screener on all S&P 500 and return top 5 per sector",
 }
 
 
@@ -25,10 +26,9 @@ def send_message(chat_id: int, text: str, parse_mode: str = "") -> None:
     urllib.request.urlopen(req)
 
 
-def run_cron(chat_id: int) -> None:
-    send_message(chat_id, "⏳ Running /cron — fetching S&P 500 quotes...")
+def run_reduce_5_percent(chat_id: int) -> None:
+    send_message(chat_id, "⏳ Running /reduce_5_percent — fetching S&P 500 quotes...")
     try:
-        # Add api/ dir to path so we can import sibling module
         api_dir = os.path.dirname(os.path.abspath(__file__))
         if api_dir not in sys.path:
             sys.path.insert(0, api_dir)
@@ -52,11 +52,40 @@ def run_cron(chat_id: int) -> None:
     except ImportError as e:
         send_message(chat_id, f"❌ Missing dependency: {e}\n\nMake sure yfinance and pandas are installed.")
     except Exception as e:
-        send_message(chat_id, f"❌ Cron error: {e}")
+        send_message(chat_id, f"❌ Error: {e}")
+
+
+def run_stock_rate(chat_id: int) -> None:
+    send_message(chat_id, "⏳ Running /stock_rate — scanning S&P 500 fundamentals, this may take a few minutes...")
+    try:
+        api_dir = os.path.dirname(os.path.abspath(__file__))
+        if api_dir not in sys.path:
+            sys.path.insert(0, api_dir)
+        from stock_rate import run_scan, _SP500_DATA  # noqa: PLC0415
+
+        symbols = list(_SP500_DATA.keys())
+        top5 = run_scan(symbols)
+
+        if not top5:
+            send_message(chat_id, "✅ Scan complete — no stocks passed the minimum score threshold.")
+            return
+
+        lines = ["📊 *S&P 500 Fundamental Screener — Top 5 per Sector*\n"]
+        for sector, stocks in top5.items():
+            lines.append(f"\n*{sector}*")
+            for s in stocks:
+                lines.append(f"  • `{s['ticker']}` {s['name']} — score {s['total_score']:.1f}/10")
+
+        send_message(chat_id, "\n".join(lines), parse_mode="Markdown")
+    except ImportError as e:
+        send_message(chat_id, f"❌ Missing dependency: {e}\n\nMake sure yfinance and pandas are installed.")
+    except Exception as e:
+        send_message(chat_id, f"❌ Error: {e}")
 
 
 COMMAND_RUNNERS = {
-    "/cron": run_cron,
+    "/reduce_5_percent": run_reduce_5_percent,
+    "/stock_rate":       run_stock_rate,
 }
 
 
