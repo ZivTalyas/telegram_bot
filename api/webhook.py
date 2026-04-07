@@ -221,9 +221,10 @@ class handler(BaseHTTPRequestHandler):
         self.wfile.write(b"ok")
         self.wfile.flush()
 
+        # Handle synchronously — Vercel keeps the function alive until this returns
         try:
             update = json.loads(body)
-            threading.Thread(target=handle_update, args=(update,), daemon=True).start()
+            handle_update(update)
         except Exception as e:
             print(f"Error handling update: {e}")
 
