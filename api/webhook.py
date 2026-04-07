@@ -95,11 +95,14 @@ def run_stock_rate(chat_id: int) -> None:
 
         top10 = sorted(results, key=lambda x: x["total_score"], reverse=True)[:10]
 
-        send_message(
-            chat_id,
-            f"✅ Scan complete — {len(results)}/{total} stocks passed threshold.\n\n*Top 10 across all sectors:*",
-            parse_mode="Markdown",
-        )
+        from datetime import date  # noqa: PLC0415
+        today = date.today().strftime("%d/%m/%Y")
+
+        lines = [
+            f"📅 {today}",
+            f"✅ {len(results)}/{total} stocks passed threshold — *Top 10 across all sectors:*",
+            "",
+        ]
 
         for i, s in enumerate(top10, 1):
             raw = s["raw_values"]
@@ -124,20 +127,31 @@ def run_stock_rate(chat_id: int) -> None:
             if raw.get("analyst_rev") is not None:
                 data_lines.append(f"Analyst Rev.   : {str(raw['analyst_rev']).capitalize()}")
 
-            reasons_text = "\n".join(f"  ✓ {r}" for r in s["reasons"]) if s["reasons"] else ""
-            flags_text   = "\n".join(f"  ⚠️ {f}" for f in s["red_flags"]) if s["red_flags"] else ""
+            lines.append(f"*{i}. {s['name']} ({s['ticker']})*")
+            lines.append(f"Sector: {s['sector']} — Score: *{s['total_score']:.1f}/10*")
+            if data_lines:
+                lines.append("```")
+                lines.extend(data_lines)
+                lines.append("```")
+            for r in s["reasons"]:
+                lines.append(f"  ✓ {r}")
+            for f in s["red_flags"]:
+                lines.append(f"  ⚠️ {f}")
+            lines.append("")
 
-            msg = (
-                f"*{i}. {s['name']} ({s['ticker']})*\n"
-                f"Sector: {s['sector']} — Score: *{s['total_score']:.1f}/10*\n"
-                f"```\n{chr(10).join(data_lines)}\n```"
-            )
-            if reasons_text:
-                msg += f"\n{reasons_text}"
-            if flags_text:
-                msg += f"\n{flags_text}"
-
-            send_message(chat_id, msg, parse_mode="Markdown")
+        # Telegram limit is 4096 chars — split if needed
+        msg, chunk = "", "\n".join(lines)
+        if len(chunk) <= 4096:
+            send_message(chat_id, chunk, parse_mode="Markdown")
+        else:
+            current = ""
+            for line in lines:
+                if len(current) + len(line) + 1 > 4090:
+                    send_message(chat_id, current.strip(), parse_mode="Markdown")
+                    current = ""
+                current += line + "\n"
+            if current.strip():
+                send_message(chat_id, current.strip(), parse_mode="Markdown")
 
     except ImportError as e:
         send_message(chat_id, f"❌ Missing dependency: {e}\n\nMake sure yfinance and pandas are installed.")
