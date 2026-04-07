@@ -1,6 +1,7 @@
 import json
 import os
 import sys
+import threading
 import urllib.request
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler
@@ -187,14 +188,18 @@ class handler(BaseHTTPRequestHandler):
     def do_POST(self):
         content_length = int(self.headers.get("Content-Length", 0))
         body = self.rfile.read(content_length)
-        try:
-            update = json.loads(body)
-            handle_update(update)
-        except Exception as e:
-            print(f"Error handling update: {e}")
+
+        # Respond 200 immediately so Telegram doesn't retry
         self.send_response(200)
         self.end_headers()
         self.wfile.write(b"ok")
+        self.wfile.flush()
+
+        try:
+            update = json.loads(body)
+            threading.Thread(target=handle_update, args=(update,), daemon=True).start()
+        except Exception as e:
+            print(f"Error handling update: {e}")
 
     def do_GET(self):
         self.send_response(200)
