@@ -12,7 +12,7 @@ CHAT_ID = os.environ.get("CHAT_ID", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
 _HERE = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-with open(os.path.join(_HERE, "sp500.json")) as _f:
+with open(os.path.join(_HERE, "sp500_top_100.json")) as _f:
     _SP500_DATA: dict = json.load(_f)
 
 SP500_SYMBOLS: list = list(_SP500_DATA.keys())

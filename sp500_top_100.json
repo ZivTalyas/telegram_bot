@@ -1,0 +1,507 @@
+{
+  "NVDA": {
+    "name": "NVIDIA Corporation",
+    "sector": "Information Technology",
+    "market_cap": "$4.551T"
+  },
+  "AAPL": {
+    "name": "Apple Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$3.846T"
+  },
+  "GOOGL": {
+    "name": "Alphabet Inc. Class A",
+    "sector": "Communication Services",
+    "market_cap": "$3.742T"
+  },
+  "GOOG": {
+    "name": "Alphabet Inc. Class C",
+    "sector": "Communication Services",
+    "market_cap": "$3.742T"
+  },
+  "MSFT": {
+    "name": "Microsoft Corporation",
+    "sector": "Information Technology",
+    "market_cap": "$2.986T"
+  },
+  "AMZN": {
+    "name": "Amazon.com Inc.",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$2.142T"
+  },
+  "META": {
+    "name": "Meta Platforms Inc.",
+    "sector": "Communication Services",
+    "market_cap": "$1.643T"
+  },
+  "AVGO": {
+    "name": "Broadcom Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$1.570T"
+  },
+  "TSLA": {
+    "name": "Tesla Inc.",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$1.565T"
+  },
+  "BRK-B": {
+    "name": "Berkshire Hathaway Inc.",
+    "sector": "Financials",
+    "market_cap": "$1.078T"
+  },
+  "WMT": {
+    "name": "Walmart Inc.",
+    "sector": "Consumer Staples",
+    "market_cap": "$1.065T"
+  },
+  "LLY": {
+    "name": "Eli Lilly and Company",
+    "sector": "Health Care",
+    "market_cap": "$930.76B"
+  },
+  "JPM": {
+    "name": "JPMorgan Chase & Co.",
+    "sector": "Financials",
+    "market_cap": "$823.86B"
+  },
+  "XOM": {
+    "name": "Exxon Mobil Corporation",
+    "sector": "Energy",
+    "market_cap": "$632.27B"
+  },
+  "V": {
+    "name": "Visa Inc.",
+    "sector": "Financials",
+    "market_cap": "$625.03B"
+  },
+  "JNJ": {
+    "name": "Johnson & Johnson",
+    "sector": "Health Care",
+    "market_cap": "$589.19B"
+  },
+  "MA": {
+    "name": "Mastercard Incorporated",
+    "sector": "Financials",
+    "market_cap": "$470.72B"
+  },
+  "MU": {
+    "name": "Micron Technology Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$465.92B"
+  },
+  "ORCL": {
+    "name": "Oracle Corporation",
+    "sector": "Information Technology",
+    "market_cap": "$449.73B"
+  },
+  "COST": {
+    "name": "Costco Wholesale Corporation",
+    "sector": "Consumer Staples",
+    "market_cap": "$443.45B"
+  },
+  "ABBV": {
+    "name": "AbbVie Inc.",
+    "sector": "Health Care",
+    "market_cap": "$402.08B"
+  },
+  "HD": {
+    "name": "Home Depot Inc.",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$388.46B"
+  },
+  "BAC": {
+    "name": "Bank of America Corp.",
+    "sector": "Financials",
+    "market_cap": "$383.52B"
+  },
+  "PG": {
+    "name": "Procter & Gamble Company",
+    "sector": "Consumer Staples",
+    "market_cap": "$376.70B"
+  },
+  "CVX": {
+    "name": "Chevron Corporation",
+    "sector": "Energy",
+    "market_cap": "$364.68B"
+  },
+  "CAT": {
+    "name": "Caterpillar Inc.",
+    "sector": "Industrials",
+    "market_cap": "$355.24B"
+  },
+  "KO": {
+    "name": "Coca-Cola Company",
+    "sector": "Consumer Staples",
+    "market_cap": "$339.82B"
+  },
+  "AMD": {
+    "name": "Advanced Micro Devices",
+    "sector": "Information Technology",
+    "market_cap": "$335.76B"
+  },
+  "GE": {
+    "name": "GE Aerospace",
+    "sector": "Industrials",
+    "market_cap": "$330.04B"
+  },
+  "NFLX": {
+    "name": "Netflix Inc.",
+    "sector": "Communication Services",
+    "market_cap": "$321.78B"
+  },
+  "MRK": {
+    "name": "Merck & Co. Inc.",
+    "sector": "Health Care",
+    "market_cap": "$297.83B"
+  },
+  "CSCO": {
+    "name": "Cisco Systems Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$296.33B"
+  },
+  "PM": {
+    "name": "Philip Morris International",
+    "sector": "Consumer Staples",
+    "market_cap": "$294.13B"
+  },
+  "LRCX": {
+    "name": "Lam Research Corporation",
+    "sector": "Information Technology",
+    "market_cap": "$290.50B"
+  },
+  "GS": {
+    "name": "Goldman Sachs Group",
+    "sector": "Financials",
+    "market_cap": "$273.82B"
+  },
+  "WFC": {
+    "name": "Wells Fargo & Company",
+    "sector": "Financials",
+    "market_cap": "$270.87B"
+  },
+  "RTX": {
+    "name": "RTX Corporation",
+    "sector": "Industrials",
+    "market_cap": "$269.98B"
+  },
+  "MS": {
+    "name": "Morgan Stanley",
+    "sector": "Financials",
+    "market_cap": "$267.09B"
+  },
+  "AMAT": {
+    "name": "Applied Materials Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$260.65B"
+  },
+  "UNH": {
+    "name": "UnitedHealth Group Incorporated",
+    "sector": "Health Care",
+    "market_cap": "$257.59B"
+  },
+  "IBM": {
+    "name": "International Business Machines",
+    "sector": "Information Technology",
+    "market_cap": "$242.58B"
+  },
+  "TMUS": {
+    "name": "T-Mobile US Inc.",
+    "sector": "Communication Services",
+    "market_cap": "$240.12B"
+  },
+  "MCD": {
+    "name": "McDonald's Corporation",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$236.97B"
+  },
+  "AXP": {
+    "name": "American Express Company",
+    "sector": "Financials",
+    "market_cap": "$236.19B"
+  },
+  "INTC": {
+    "name": "Intel Corporation",
+    "sector": "Information Technology",
+    "market_cap": "$232.17B"
+  },
+  "PEP": {
+    "name": "PepsiCo Inc.",
+    "sector": "Consumer Staples",
+    "market_cap": "$228.61B"
+  },
+  "GEV": {
+    "name": "GE Vernova Inc.",
+    "sector": "Industrials",
+    "market_cap": "$221.54B"
+  },
+  "VZ": {
+    "name": "Verizon Communications Inc.",
+    "sector": "Communication Services",
+    "market_cap": "$208.57B"
+  },
+  "T": {
+    "name": "AT&T Inc.",
+    "sector": "Communication Services",
+    "market_cap": "$204.17B"
+  },
+  "TXN": {
+    "name": "Texas Instruments Incorporated",
+    "sector": "Information Technology",
+    "market_cap": "$202.62B"
+  },
+  "C": {
+    "name": "Citigroup Inc.",
+    "sector": "Financials",
+    "market_cap": "$198.87B"
+  },
+  "AMGN": {
+    "name": "Amgen Inc.",
+    "sector": "Health Care",
+    "market_cap": "$197.38B"
+  },
+  "ABT": {
+    "name": "Abbott Laboratories",
+    "sector": "Health Care",
+    "market_cap": "$194.00B"
+  },
+  "TMO": {
+    "name": "Thermo Fisher Scientific",
+    "sector": "Health Care",
+    "market_cap": "$191.54B"
+  },
+  "NEE": {
+    "name": "NextEra Energy Inc.",
+    "sector": "Utilities",
+    "market_cap": "$191.45B"
+  },
+  "KLAC": {
+    "name": "KLA Corporation",
+    "sector": "Information Technology",
+    "market_cap": "$190.63B"
+  },
+  "GILD": {
+    "name": "Gilead Sciences Inc.",
+    "sector": "Health Care",
+    "market_cap": "$188.39B"
+  },
+  "BA": {
+    "name": "Boeing Company",
+    "sector": "Industrials",
+    "market_cap": "$187.97B"
+  },
+  "DIS": {
+    "name": "Walt Disney Company",
+    "sector": "Communication Services",
+    "market_cap": "$181.55B"
+  },
+  "NOW": {
+    "name": "ServiceNow Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$178.00B"
+  },
+  "ISRG": {
+    "name": "Intuitive Surgical Inc.",
+    "sector": "Health Care",
+    "market_cap": "$175.00B"
+  },
+  "BKNG": {
+    "name": "Booking Holdings Inc.",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$172.00B"
+  },
+  "HON": {
+    "name": "Honeywell International",
+    "sector": "Industrials",
+    "market_cap": "$165.00B"
+  },
+  "PANW": {
+    "name": "Palo Alto Networks Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$162.00B"
+  },
+  "INTU": {
+    "name": "Intuit Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$160.00B"
+  },
+  "BLK": {
+    "name": "BlackRock Inc.",
+    "sector": "Financials",
+    "market_cap": "$158.00B"
+  },
+  "SPGI": {
+    "name": "S&P Global Inc.",
+    "sector": "Financials",
+    "market_cap": "$155.00B"
+  },
+  "BSX": {
+    "name": "Boston Scientific Corporation",
+    "sector": "Health Care",
+    "market_cap": "$150.00B"
+  },
+  "LOW": {
+    "name": "Lowe's Companies Inc.",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$148.00B"
+  },
+  "SNPS": {
+    "name": "Synopsys Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$146.00B"
+  },
+  "VRTX": {
+    "name": "Vertex Pharmaceuticals",
+    "sector": "Health Care",
+    "market_cap": "$145.00B"
+  },
+  "DE": {
+    "name": "Deere & Company",
+    "sector": "Industrials",
+    "market_cap": "$144.00B"
+  },
+  "CDNS": {
+    "name": "Cadence Design Systems",
+    "sector": "Information Technology",
+    "market_cap": "$143.00B"
+  },
+  "REGN": {
+    "name": "Regeneron Pharmaceuticals",
+    "sector": "Health Care",
+    "market_cap": "$141.00B"
+  },
+  "PGR": {
+    "name": "Progressive Corporation",
+    "sector": "Financials",
+    "market_cap": "$140.00B"
+  },
+  "ADI": {
+    "name": "Analog Devices Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$138.00B"
+  },
+  "ETN": {
+    "name": "Eaton Corporation plc",
+    "sector": "Industrials",
+    "market_cap": "$136.00B"
+  },
+  "SCHW": {
+    "name": "Charles Schwab Corporation",
+    "sector": "Financials",
+    "market_cap": "$134.00B"
+  },
+  "CB": {
+    "name": "Chubb Limited",
+    "sector": "Financials",
+    "market_cap": "$130.00B"
+  },
+  "CRM": {
+    "name": "Salesforce Inc.",
+    "sector": "Information Technology",
+    "market_cap": "$128.00B"
+  },
+  "QCOM": {
+    "name": "Qualcomm Incorporated",
+    "sector": "Information Technology",
+    "market_cap": "$125.00B"
+  },
+  "SYK": {
+    "name": "Stryker Corporation",
+    "sector": "Health Care",
+    "market_cap": "$123.00B"
+  },
+  "SBUX": {
+    "name": "Starbucks Corporation",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$122.00B"
+  },
+  "UNP": {
+    "name": "Union Pacific Corporation",
+    "sector": "Industrials",
+    "market_cap": "$121.00B"
+  },
+  "TJX": {
+    "name": "TJX Companies Inc.",
+    "sector": "Consumer Discretionary",
+    "market_cap": "$120.00B"
+  },
+  "NXPI": {
+    "name": "NXP Semiconductors N.V.",
+    "sector": "Information Technology",
+    "market_cap": "$119.00B"
+  },
+  "PLD": {
+    "name": "Prologis Inc.",
+    "sector": "Real Estate",
+    "market_cap": "$118.00B"
+  },
+  "EOG": {
+    "name": "EOG Resources Inc.",
+    "sector": "Energy",
+    "market_cap": "$116.00B"
+  },
+  "MMC": {
+    "name": "Marsh & McLennan Companies",
+    "sector": "Financials",
+    "market_cap": "$115.00B"
+  },
+  "UBER": {
+    "name": "Uber Technologies Inc.",
+    "sector": "Industrials",
+    "market_cap": "$113.00B"
+  },
+  "ADP": {
+    "name": "Automatic Data Processing",
+    "sector": "Information Technology",
+    "market_cap": "$112.00B"
+  },
+  "CME": {
+    "name": "CME Group Inc.",
+    "sector": "Financials",
+    "market_cap": "$111.00B"
+  },
+  "ZTS": {
+    "name": "Zoetis Inc.",
+    "sector": "Health Care",
+    "market_cap": "$110.00B"
+  },
+  "MDLZ": {
+    "name": "Mondelez International",
+    "sector": "Consumer Staples",
+    "market_cap": "$109.00B"
+  },
+  "PH": {
+    "name": "Parker-Hannifin Corporation",
+    "sector": "Industrials",
+    "market_cap": "$107.00B"
+  },
+  "AON": {
+    "name": "Aon plc",
+    "sector": "Financials",
+    "market_cap": "$105.00B"
+  },
+  "DHR": {
+    "name": "Danaher Corporation",
+    "sector": "Health Care",
+    "market_cap": "$104.00B"
+  },
+  "ICE": {
+    "name": "Intercontinental Exchange",
+    "sector": "Financials",
+    "market_cap": "$103.00B"
+  },
+  "KKR": {
+    "name": "KKR & Co. Inc.",
+    "sector": "Financials",
+    "market_cap": "$102.00B"
+  },
+  "CRWD": {
+    "name": "CrowdStrike Holdings",
+    "sector": "Information Technology",
+    "market_cap": "$101.00B"
+  },
+  "WM": {
+    "name": "Waste Management Inc.",
+    "sector": "Industrials",
+    "market_cap": "$100.00B"
+  }
+}

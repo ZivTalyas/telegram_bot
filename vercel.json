@@ -2,6 +2,7 @@
   "framework": null,
   "rewrites": [
     { "source": "/webhook", "destination": "/api/webhook" },
-    { "source": "/cron",    "destination": "/api/cron" }
+    { "source": "/cron",    "destination": "/api/reduce_5_percent" },
+    { "source": "/screener", "destination": "/api/stock_rate" }
   ]
 }
