@@ -2,6 +2,7 @@ import json
 import os
 import sys
 import urllib.request
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from http.server import BaseHTTPRequestHandler
 
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
@@ -56,27 +57,87 @@ def run_reduce_5_percent(chat_id: int) -> None:
 
 
 def run_stock_rate(chat_id: int) -> None:
-    send_message(chat_id, "⏳ Running /stock_rate — scanning S&P 500 fundamentals, this may take a few minutes...")
+    send_message(chat_id, "⏳ Starting /stock_rate — scanning S&P 500 fundamentals for all companies...")
     try:
         api_dir = os.path.dirname(os.path.abspath(__file__))
         if api_dir not in sys.path:
             sys.path.insert(0, api_dir)
-        from stock_rate import run_scan, _SP500_DATA  # noqa: PLC0415
+        from stock_rate import score_ticker, _SP500_DATA, MIN_SCORE  # noqa: PLC0415
 
         symbols = list(_SP500_DATA.keys())
-        top5 = run_scan(symbols)
+        total = len(symbols)
+        results = []
+        done = 0
+        last_reported = 0
 
-        if not top5:
+        def _score(sym):
+            try:
+                return score_ticker(sym, _SP500_DATA.get(sym, {}))
+            except Exception:
+                return None
+
+        with ThreadPoolExecutor(max_workers=20) as ex:
+            futures = {ex.submit(_score, sym): sym for sym in symbols}
+            for future in as_completed(futures):
+                result = future.result()
+                done += 1
+                pct = int(done / total * 100)
+                if pct >= last_reported + 10:
+                    send_message(chat_id, f"📈 {pct}% — {done}/{total} stocks scanned...")
+                    last_reported = pct
+                if result and result["total_score"] >= MIN_SCORE:
+                    results.append(result)
+
+        if not results:
             send_message(chat_id, "✅ Scan complete — no stocks passed the minimum score threshold.")
             return
 
-        lines = ["📊 *S&P 500 Fundamental Screener — Top 5 per Sector*\n"]
-        for sector, stocks in top5.items():
-            lines.append(f"\n*{sector}*")
-            for s in stocks:
-                lines.append(f"  • `{s['ticker']}` {s['name']} — score {s['total_score']:.1f}/10")
+        top10 = sorted(results, key=lambda x: x["total_score"], reverse=True)[:10]
 
-        send_message(chat_id, "\n".join(lines), parse_mode="Markdown")
+        send_message(
+            chat_id,
+            f"✅ Scan complete — {len(results)}/{total} stocks passed threshold.\n\n*Top 10 across all sectors:*",
+            parse_mode="Markdown",
+        )
+
+        for i, s in enumerate(top10, 1):
+            raw = s["raw_values"]
+
+            data_lines = []
+            if raw.get("revenue_growth") is not None:
+                data_lines.append(f"Revenue Growth : {raw['revenue_growth'] * 100:+.1f}%")
+            if raw.get("gross_margin") is not None:
+                data_lines.append(f"Gross Margin   : {raw['gross_margin'] * 100:.1f}%")
+            if raw.get("eps_growth") is not None:
+                data_lines.append(f"EPS Growth     : {raw['eps_growth'] * 100:+.1f}%")
+            if raw.get("ocf_growth") is not None:
+                data_lines.append(f"OCF Growth     : {raw['ocf_growth'] * 100:+.1f}%")
+            if raw.get("roe") is not None:
+                data_lines.append(f"ROE            : {raw['roe'] * 100:.1f}%")
+            if raw.get("debt_equity") is not None:
+                data_lines.append(f"Debt/Equity    : {raw['debt_equity']:.2f}")
+            if raw.get("forward_pe") is not None:
+                data_lines.append(f"Forward P/E    : {raw['forward_pe']:.1f}x")
+            if raw.get("earnings_beat") is not None:
+                data_lines.append(f"Earnings Beat  : {raw['earnings_beat'] * 100:.0f}%")
+            if raw.get("analyst_rev") is not None:
+                data_lines.append(f"Analyst Rev.   : {str(raw['analyst_rev']).capitalize()}")
+
+            reasons_text = "\n".join(f"  ✓ {r}" for r in s["reasons"]) if s["reasons"] else ""
+            flags_text   = "\n".join(f"  ⚠️ {f}" for f in s["red_flags"]) if s["red_flags"] else ""
+
+            msg = (
+                f"*{i}. {s['name']} ({s['ticker']})*\n"
+                f"Sector: {s['sector']} — Score: *{s['total_score']:.1f}/10*\n"
+                f"```\n{chr(10).join(data_lines)}\n```"
+            )
+            if reasons_text:
+                msg += f"\n{reasons_text}"
+            if flags_text:
+                msg += f"\n{flags_text}"
+
+            send_message(chat_id, msg, parse_mode="Markdown")
+
     except ImportError as e:
         send_message(chat_id, f"❌ Missing dependency: {e}\n\nMake sure yfinance and pandas are installed.")
     except Exception as e:
