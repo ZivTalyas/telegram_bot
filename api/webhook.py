@@ -9,6 +9,8 @@ from http.server import BaseHTTPRequestHandler
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN", "")
 TELEGRAM_API = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}"
 
+_scan_lock = threading.Lock()
+
 # Routes that can be triggered via bot commands
 ROUTES = {
     "/reduce_5_percent": "Check top-100 S&P 500 stocks down ≥5% today and send alerts",
@@ -58,6 +60,16 @@ def run_reduce_5_percent(chat_id: int) -> None:
 
 
 def run_stock_rate(chat_id: int) -> None:
+    if not _scan_lock.acquire(blocking=False):
+        send_message(chat_id, "⚠️ A scan is already running. Please wait for it to finish.")
+        return
+    try:
+        _run_stock_rate(chat_id)
+    finally:
+        _scan_lock.release()
+
+
+def _run_stock_rate(chat_id: int) -> None:
     send_message(chat_id, "⏳ Starting /stock_rate — scanning S&P 500 fundamentals for all companies...")
     try:
         api_dir = os.path.dirname(os.path.abspath(__file__))
